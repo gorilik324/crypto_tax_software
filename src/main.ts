@@ -23,8 +23,8 @@ function main2() {
   
  console.log(Date.parse("Sep. 30, 2016, 02:32 AM"))
  
-  //const loadFunctions = [loadFromBitstamp, loadDataFromGemini, loadDataFromBinance,loadDataFromBitmex, loadDataPoloniex, loadAllBitfinexTrades, loadDataFromCoinbaseAll]
-  const loadFunctions = [loadDataFromBitmex, loadDataPoloniex]
+  const loadFunctions = [loadFromBitstamp, loadDataFromGemini, loadDataFromBinance,loadDataFromBitmex, loadDataPoloniex, loadAllBitfinexTrades, loadDataFromCoinbaseAll]
+  //const loadFunctions = [loadDataFromBitmex, loadDataPoloniex]
   //const loadFunctions = [loadDataFromCoinbaseAll]
 
   let allData: Trade[] = []

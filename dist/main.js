@@ -13,8 +13,8 @@ function main2() {
     //loadDataFromGemini();
     //writeDataPoloniex()
     console.log(Date.parse("Sep. 30, 2016, 02:32 AM"));
-    //const loadFunctions = [loadFromBitstamp, loadDataFromGemini, loadDataFromBinance,loadDataFromBitmex, loadDataPoloniex, loadAllBitfinexTrades, loadDataFromCoinbaseAll]
-    const loadFunctions = [tradeInput_1.loadDataFromBitmex, tradeInput_1.loadDataPoloniex];
+    const loadFunctions = [tradeInput_1.loadFromBitstamp, tradeInput_1.loadDataFromGemini, tradeInput_1.loadDataFromBinance, tradeInput_1.loadDataFromBitmex, tradeInput_1.loadDataPoloniex, tradeInput_1.loadAllBitfinexTrades, tradeInput_1.loadDataFromCoinbaseAll];
+    //const loadFunctions = [loadDataFromBitmex, loadDataPoloniex]
     //const loadFunctions = [loadDataFromCoinbaseAll]
     let allData = [];
     let tempTrades;
