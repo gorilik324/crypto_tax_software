@@ -2,12 +2,21 @@ export interface Coin {
   amount: number;
   costBasis: number;
   time: number;
+  exchange:  string;
 }
 
 export interface CoinWallet {
   name: string;
   symbol: string;
   coins: Coin[];
+}
+
+export interface CostBasisCoinInfo{
+  time: number;
+  exchange: string;
+  coinLength: number;
+  lastSize: number;
+  cost: number;
 }
 
 export interface Sale {
@@ -17,6 +26,12 @@ export interface Sale {
   costBasisUSD: number;
   costBasisUnfound: boolean;
   price: number;
+  exchange: string;
+  date?: string;
+  buyMktPrc?: number;
+  buyAmt?: number;
+  lineNum?: number;
+  fileName?: string;
 }
 
 export interface Trade {
@@ -32,6 +47,9 @@ export interface Trade {
   isBuy: boolean;
   type: string;
   costBasisUSD: number;
+  exchange: string;
+  lineNum?: number;
+  fileName?: string;
 }
 
 export interface UnmatchedSell {
@@ -54,3 +72,7 @@ export interface MarketPriceWithLoc {
 
 export type AllMarketPrices = Map<string, MarketPriceWithLoc>;
 
+export interface BoughtSold {
+  buyAmt: number;
+  sellAmt: number;  
+}
