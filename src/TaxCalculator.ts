@@ -14,6 +14,7 @@ export class TaxCalculator{
     mktPrcs: AllMarketPrices;
     realizedPnl: number;
     totalUSDUnfoundCoin: number;
+    debug1: number;
   
     constructor(useFifo: boolean, mktPrcs: AllMarketPrices){
       this.isFifo = useFifo;
@@ -25,6 +26,7 @@ export class TaxCalculator{
       this.mktPrcs = mktPrcs;
       this.realizedPnl = 0;
       this.totalUSDUnfoundCoin = 0;
+      this.debug1 = 0;
     }
   
   removeAmtFromBack(amt: number, coins: Coin[]) {
@@ -253,7 +255,9 @@ export class TaxCalculator{
   
       if (trade.isBuy) {
         const COST_BASIS = 0;  
-        this.addCoinToWallet(trade.buyAmount, 0, 'BTC', trade.time, trade.exchange, this.coinWallets)
+        this.addCoinToWallet(trade.buyAmount, btcPrice * trade.buyAmount, 'BTC', trade.time, trade.exchange, this.coinWallets)
+        this.addSale("BTC", trade.time, trade.buyAmount, COST_BASIS,
+        btcPrice * trade.buyAmount, trade.exchange, btcPrice, -99,  -99,  "unknown", sales);
         /*
         this.addSale("BTC", trade.time, trade.buyAmount, COST_BASIS,
           trade.buyAmount * btcPrice, trade.exchange, btcPrice, -99, -99, "unknown" , sales);
@@ -276,6 +280,9 @@ export class TaxCalculator{
         this.addCoinToWallet(trade.buyAmount, trade.sellAmount, trade.buySymbol, trade.time, trade.exchange, this.coinWallets)
       } else if(trade.buySymbol ==='USD'){
        // this.netUSDreceived += trade.buyAmount;
+       if(trade.exchange==="coinbase" && trade.sellSymbol==="BTC"){
+        this.debug1 += trade.sellAmount;
+       }
        this.addCoinToWallet(trade.buyAmount, trade.buyAmount, trade.buySymbol, trade.time, trade.exchange, this.coinWallets)
          
         const sellPrc = getPrice(trade.sellSymbol, trade.time, this.mktPrcs, this.debugInfo);
@@ -297,12 +304,14 @@ export class TaxCalculator{
         if (useList.includes(trade.buySymbol) && useList.includes(trade.sellSymbol)) {
           let buyPriceUsd: number = getPrice(trade.buySymbol, trade.time, this.mktPrcs, this.debugInfo);
           //console.log(`buyPriceUsd: ${buyPriceUsd} sellPriceUsd: ${sellPriceUsd}`)
-          if(trade.time ===1515775374000){
+          /*
+          if(trade.sellAmount ===2.29714281){
             console.log(JSON.stringify(trade))
             fs.appendFileSync('output/debug22.txt', `www: ${JSON.stringify(trade.buyAmount)} ${buyPriceUsd}, ${trade.time} ${trade.buySymbol}\r\n`)
             fs.appendFileSync('output/debug22.txt', `www: ${JSON.stringify(this.debugInfo)}, ${JSON.stringify(trade)}\r\n`)
-            //throw('found tradeaaaa');
+            throw('found tradeaaaa');
           }
+          */
           const sellPrc = getPrice(trade.sellSymbol, trade.time, this.mktPrcs, this.debugInfo);
     
           this.addCoinToWallet(trade.buyAmount, trade.buyAmount * buyPriceUsd, trade.buySymbol, trade.time, trade.exchange, this.coinWallets)
@@ -360,6 +369,7 @@ export class TaxCalculator{
           if (trades[i].type === 'Exchange')
             this.doTrades(trades[i], sales);
         }
+        /*
         if(Math.abs(this.calculatePortfolioCostBasis() - this.realizedPnl) > 10){
           
           console.log(`${getPrice("BTC", trades[i].time, this.mktPrcs, this.debugInfo)}, ${prevReaizedPnl}, ${prevMktValue}`);
@@ -367,6 +377,7 @@ export class TaxCalculator{
           throw(`cost basis error: ${this.calculatePortfolioCostBasis()} ${this.realizedPnl} ${JSON.stringify(trades[i])}`)
          
         }
+        */
         prevReaizedPnl = this.realizedPnl;
         prevMktValue = this.calculatePortfolioCostBasis();
 
@@ -392,8 +403,8 @@ export class TaxCalculator{
 
     performAnalysis(data: Trade[]): Sale[] {
       
-      const uppDateFilter = new Date('2018-01-01 00:00:01').getTime()
-      const lowerDateFilter = new Date('2016-01-01 00:00:01').getTime()
+      const uppDateFilter = new Date('2019-01-01T00:00:01Z').getTime()
+      const lowerDateFilter = new Date('2017-01-01 00:00:01Z').getTime()
       const filterSym = ["BTC", "USDT", "ETH", "USD", "LTC", "ZEC", "BNB", "EUR", "BCH", "XRP", "BSV"]
       const saleRecords: Sale[] = []
       
@@ -437,10 +448,13 @@ export class TaxCalculator{
           writeUnfoundCostBasis(this.costBasisErrorCoins, saleRecords.at(-1)!.time, this.mktPrcs);
         }) 
       }
-      
-      
+
+      let sumBtcCoinbase = 0;
+      saleRecords.forEach(sale => sumBtcCoinbase += sale.sym ==="BTC" && sale.exchange==="coinbase"? sale.amount: 0);
+      console.log(`sumBtcCoinbase: ${sumBtcCoinbase}`)
       console.log(`total portfolio balance :${totalUSDBalance} total realized USD: ${totalRealizedUSD}`)
       console.log(` cost basis not found for  $ ${this.totalUSDUnfoundCoin}`)
+      console.log(` debug1: ${this.debug1}`)
       
       return saleRecords;
     }

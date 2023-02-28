@@ -99,7 +99,7 @@ export function getCoinPrice(coin: string): MarketPrice[] {
   } else if(coin==="ZEC"){
     return sortMktPrice(getZEC());
   } else if(coin=="BTC"){
-    return sortMktPrice(getHourlyCoinBaseBtc());
+    return sortMktPrice(get15minCoinBaseBtc());
   } else if(coin=="BNB"){
     return sortMktPrice(getBNBDaily());
   } 
@@ -218,7 +218,7 @@ export function getHourlyCoinBaseBtc():  MarketPrice[]{
 }
 
 export function get15minCoinBaseBtc():  MarketPrice[]{
-  let data1 = fs.readFileSync('data/prices/BTC-USD-USD-Hourly.csv');
+  let data1 = fs.readFileSync('data/prices/BTC-USD-15min.csv');
   let data = JSON.parse(data1.toString());
   const mktPrcs: MarketPrice[] = [];
   data.forEach( (array1: any) => {

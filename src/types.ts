@@ -50,6 +50,8 @@ export interface Trade {
   exchange: string;
   lineNum?: number;
   fileName?: string;
+  ordernum?: number;
+  feeSym?: string;
 }
 
 export interface UnmatchedSell {

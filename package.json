@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@types/node": "^18.14.1",
+    "alasql": "^3.1.0",
+    "axios": "^1.3.4",
+    "typescript": "^4.9.5"
+  }
+}

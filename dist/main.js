@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const logger_1 = require("./logger");
 const mktDataInput_1 = require("./mktDataInput");
 const tradeInput_1 = require("./tradeInput");
+const compareFiles_1 = require("./compareFiles");
 const TaxCalculator_1 = require("./TaxCalculator");
 function logOutput(sales) {
     (0, logger_1.writeSalesSummary)(sales);
@@ -12,7 +13,6 @@ function main2() {
     //throw("enter main2")
     //loadDataFromGemini();
     //writeDataPoloniex()
-    console.log(Date.parse("Sep. 30, 2016, 02:32 AM"));
     const loadFunctions = [tradeInput_1.loadFromBitstamp, tradeInput_1.loadDataFromGemini, tradeInput_1.loadDataFromBinance, tradeInput_1.loadDataFromBitmex, tradeInput_1.loadDataPoloniex, tradeInput_1.loadAllBitfinexTrades, tradeInput_1.loadDataFromCoinbaseAll];
     //const loadFunctions = [loadDataFromBitmex, loadDataPoloniex]
     //const loadFunctions = [loadDataFromCoinbaseAll]
@@ -22,9 +22,9 @@ function main2() {
         tempTrades = func();
         tempTrades === null || tempTrades === void 0 ? void 0 : tempTrades.forEach(trade => allData.push(trade));
     });
-    const coinbaseTrades = (0, tradeInput_1.loadDataFromCoinbaseAll)(); // loadDataFromCoinTracking("Coinbase Pro")
+    //const coinbaseTrades =  loadDataFromCoinbaseAll()//;;loadDataFromCoinTracking("Coinbase Pro")
     //throw(coinbaseTrades.length)
-    coinbaseTrades.forEach(trade => allData.push(trade));
+    //coinbaseTrades.forEach( trade => {allData.push(trade)})
     console.log("done get all data from files");
     // const bitmexData = loadDataFromBitmex();
     const poloData = (0, tradeInput_1.loadDataPoloniex)();
@@ -40,7 +40,7 @@ function main2() {
     //getPrice('BTC', 1519067408000, mktPrcs);
     //throw("early exit")
     //getInitialCostBasisOfBuyTrades(allData)
-    const USD_FIFO = false;
+    const USD_FIFO = true;
     const taxCalculator = new TaxCalculator_1.TaxCalculator(USD_FIFO, mktPrcs);
     const sales = taxCalculator.performAnalysis(allData);
     logOutput(sales);
@@ -101,10 +101,10 @@ function getCoinBaseData() {
 // getCoinBaseData()
 //getHourlyCoinBaseEth()
 console.log("before main2");
-main2();
-//compareTwo()
+//main2();
+(0, compareFiles_1.compareTwo)();
 //getCoinBaseData()
-console.log("done222");
+// console.log("done222")
 // runCompare();
 //loadDataFromCoinbaseAll()
 //compareToFindMissing()

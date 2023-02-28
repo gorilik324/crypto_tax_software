@@ -212,16 +212,98 @@ function getMatchingTrades(data0: Trade[], data1: Trade[], hrsAdj: number[]){
 
 }
 
+function getMatchingTradesByOrderNum(data0: Trade[], data1: Trade[]){
+  let ordernums0 = data0.map((trade) => trade.ordernum ).sort((a, b) => a! - b!)
+  let ordernums1 = data1.map((trade) => trade.ordernum ).sort((a, b) => a! - b!)
+
+  data0.sort((a, b) => a.ordernum! - b.ordernum!)
+  data1.sort((a, b) => a.ordernum! - b.ordernum!)
+
+  
+  data0.forEach(trade => {
+    let loc = binarySearch(data1, trade,  (a, b) => a.ordernum!-b.ordernum!);
+    if(loc >=0){
+      let trade1 = data1[loc]
+      //console.log(trade1.time - trade.time)
+      if(trade1.buyAmount>.000001 && trade1.sellAmount>.000001 &&
+        (Math.abs(trade.buyAmount/trade1.buyAmount - 1)>.001 || Math.abs(trade.sellAmount/trade1.sellAmount - 1)>.001)){
+        console.log(`trade: ${JSON.stringify(trade)}, trade1: ${JSON.stringify(trade1)}`)
+        throw(`not equal: ${trade.buyAmount/trade1.buyAmount - 1}, ${trade.sellAmount/trade1.sellAmount - 1}`)
+      }
+    } else {
+      throw(`not found: ${trade}`)
+    }
+  })
+
+  console.log(`getMatchingTradesByOrderNum done`)
+
+}
+
+function getFeebySym(data: Trade[]){
+  let fee = new Map();
+  data.forEach(trade => {
+    if(fee.has(trade.feeSym)){
+      fee.set(trade.feeSym, fee.get(trade.feeSym) + trade.fee)
+    } else {
+      fee.set(trade.feeSym, trade.fee)
+    }
+  })
+  return fee;
+}
+
 export function compareTwo(){
   let lowerTime = new Date('2017-01-01').getTime();
   let upperTime = new Date('2018-01-01').getTime(); 
-  let data0 = loadDataFromCoinbaseAll()
-  let data1 = loadDataFromCoinTracking("Coinbase Pro")
+  let data0 = loadDataPoloniex()
+  let data1 = loadDataFromCoinTracking("Poloniex")
 
   let data0Reduced = data0.filter( (trade: Trade) => trade.time > lowerTime && trade.time < upperTime)
   let data1Reduced = data1.filter( (trade: Trade) => trade.time > lowerTime && trade.time < upperTime)
+
+  let fee0: Map<string, number> = getFeebySym(data0Reduced)
+  let fee1: Map<string, number> = getFeebySym(data1Reduced)
+
+  fee0.forEach((value, key) => {
+    console.log(`fee0: ${key}, ${value}`)
+  })
+
+  fee1.forEach((value, key) => {
+    console.log(`fee1: ${key}, ${value}`)
+  })
+
+
+  
+
+
+  return;
+
+
+  getMatchingTradesByOrderNum(data1Reduced, data0Reduced)
   
   console.log(`data0 length: ${data0Reduced.length}, data1 length: ${data1Reduced.length}`)
+  
+  let amtBtcSold0 = 0;
+  let amtBtcSold1 = 0;
+  let amtBtcSold2 = 0;
+
+  for(let i = 0; i < data0Reduced.length; ++i){
+    let trade = data0Reduced[i]
+    if(trade.sellName === 'BTC' && trade.buyName === 'USD'){
+      amtBtcSold0 += trade.sellAmount
+    } else if(trade.sellName === 'BTC'){
+      amtBtcSold2 += trade.sellAmount
+    }
+  }
+
+  for(let i = 0; i < data1Reduced.length; ++i){
+    let trade = data1Reduced[i]
+    if(trade.sellName === 'BTC' && trade.buyName === 'USD'){
+      amtBtcSold1 += trade.sellAmount
+    }
+  }
+  console.log(`amtBtcSold0: ${amtBtcSold0}, amtBtcSold1: ${amtBtcSold1}, diff: ${amtBtcSold0 - amtBtcSold1}, allSold: ${amtBtcSold2}`)
+
+
 }
 
 

@@ -4,7 +4,7 @@ import { writeSalesSummary, writeSales, Log, writeUnfoundCostBasis } from './log
 import { getPrice, loadMktData, getCoinBaseProData, getHourlyCoinBaseBtc, getHourlyCoinBaseEth } from './mktDataInput'
 import { loadDataPoloniex, loadDataFromCoinTracking, loadDataBinanceCoinTracking, 
   loadDataFromBitmex, loadCointrackingSales, loadAllBitfinexTrades,loadDataFromCoinbaseAll, 
-  loadDataFromBinance, loadDataFromGemini, writeDataPoloniex, loadFromBitstamp} from './tradeInput'
+  loadDataFromBinance, loadDataFromGemini, writeDataPoloniex, loadFromBitstamp, loadDataPoloniexFromCointracking} from './tradeInput'
 import { compareByTime, compareByAmt } from './validation/compareTwo'
 import { compareToFindMissing, compareTwo } from './compareFiles'
 import { TaxCalculator } from './TaxCalculator'
@@ -21,8 +21,6 @@ function main2() {
   //loadDataFromGemini();
   //writeDataPoloniex()
   
- console.log(Date.parse("Sep. 30, 2016, 02:32 AM"))
- 
   const loadFunctions = [loadFromBitstamp, loadDataFromGemini, loadDataFromBinance,loadDataFromBitmex, loadDataPoloniex, loadAllBitfinexTrades, loadDataFromCoinbaseAll]
   //const loadFunctions = [loadDataFromBitmex, loadDataPoloniex]
   //const loadFunctions = [loadDataFromCoinbaseAll]
@@ -34,9 +32,9 @@ function main2() {
     tempTrades?.forEach( trade => allData.push(trade))
   })
 
-  const coinbaseTrades = loadDataFromCoinbaseAll()// loadDataFromCoinTracking("Coinbase Pro")
+  //const coinbaseTrades =  loadDataFromCoinbaseAll()//;;loadDataFromCoinTracking("Coinbase Pro")
   //throw(coinbaseTrades.length)
-  coinbaseTrades.forEach( trade => allData.push(trade))
+  //coinbaseTrades.forEach( trade => {allData.push(trade)})
   console.log("done get all data from files")
   
  // const bitmexData = loadDataFromBitmex();
@@ -55,7 +53,7 @@ function main2() {
   //getPrice('BTC', 1519067408000, mktPrcs);
   //throw("early exit")
   //getInitialCostBasisOfBuyTrades(allData)
-  const USD_FIFO = false;
+  const USD_FIFO = true;
   const taxCalculator = new TaxCalculator(USD_FIFO, mktPrcs);
   const sales = taxCalculator.performAnalysis(allData)
 
@@ -128,10 +126,10 @@ function getCoinBaseData(){
 // getCoinBaseData()
 //getHourlyCoinBaseEth()
 console.log("before main2") 
-main2();
-//compareTwo()
+//main2();
+compareTwo()
 //getCoinBaseData()
- console.log("done222")
+// console.log("done222")
 // runCompare();
 //loadDataFromCoinbaseAll()
 //compareToFindMissing()

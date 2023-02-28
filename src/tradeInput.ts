@@ -13,7 +13,8 @@ export function loadDataPoloniex(): Trade[] {
   let syms: string[] = []
   let sellAmt: number = 0;
   let buyAmt: number = 0;
-  let fee: number = 0;
+  let feeAmt: number = 0;
+  let feePrct: number = 0;
   // Date,Market,Category,Type,Price,Amount,Total,Fee,Order Number,Base Total Less Fee,Quote Total Less Fee
   let data = fs.readFileSync(fileName, 'utf-8')
   var errata = fs.createWriteStream('output/polo_input_errata.csv');
@@ -21,6 +22,7 @@ export function loadDataPoloniex(): Trade[] {
   let dataLines: string[] = data.split(/\r?\n/);
   dataLines.shift();
   let price;
+  let feeSym: string;
   dataLines.forEach((line, index) => {
     stringLine = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
     if (stringLine.length === 11) {
@@ -38,9 +40,13 @@ export function loadDataPoloniex(): Trade[] {
       }
 
       sellAmt = Math.abs(parseFloat(stringLine[9].replace(/[,\"]/g, '')));
+      
       buyAmt = parseFloat(stringLine[5].replace(/[,\"]/g, ''));
       price = parseFloat(stringLine[4].replace(/[,\"]/g, ''));
-      fee = parseFloat(stringLine[7].replace('%','')) / 100;
+      feePrct = parseFloat(stringLine[7].replace('%',''));
+      
+      feeSym = isbuy ? syms[0] : syms[1]
+      
       // console.log(`fee: ${fee}, ${1-fee} ${stringLine}`)
       if (buyAmt < 0 || sellAmt < 0) {
         console.log(`buyAmt: ${buyAmt}, sellAmt: ${sellAmt}`)
@@ -54,9 +60,12 @@ export function loadDataPoloniex(): Trade[] {
       // console.log(`buyAmt: ${buyAmt}, sellAmt: ${sellAmt}`)
       // console.log(`fee: ${fee}, ${stringLine}`)
       if(isbuy) {
-        buyAmt =  sellAmt / price * (1.0 - fee);
+        buyAmt =  sellAmt / price * (1.0 - feePrct*1.0/100);
+        feeAmt =  sellAmt / price * (feePrct*1.0/100)
        // console.log(`${line}`)
         //throw(`zzzz ${buyAmt} ${price} ${sellAmt} ${fee}`)
+      } else {
+        feeAmt =  Math.abs(parseFloat(stringLine[10].replace(/[,\"]/g, ''))) - sellAmt;
       }
 
       trades.push({
@@ -66,16 +75,24 @@ export function loadDataPoloniex(): Trade[] {
         sellSymbol: sym2,
         buyAmount: isbuy ? (buyAmt)  : sellAmt,
         sellAmount: isbuy ? sellAmt : buyAmt,
-        fee: fee,
-        time: Date.parse(stringLine[0] + ' GMT+0000'),
+        fee: feeAmt,
+        time: Date.parse(stringLine[0] + ' GMT+0000') - 1000*3600*1.5,
         feeUsd: -99,
         isBuy: isbuy,
         type: stringLine[2],
         costBasisUSD: -99,
         exchange: 'poloniex',
         lineNum: index,
-        fileName
+        fileName,
+        feeSym
       });
+      /*
+      if(sellAmt === 2.29714281){
+
+          throw(`sellAmount: ${sellAmt} ${JSON.stringify(trades.at(-1))} ${trades.at(-1)?.sellAmount===2.29714281}`)
+
+      }
+      */
     }
   })
   //trades.push(trade)
@@ -160,8 +177,12 @@ export function writeDataPoloniex() {
 export function loadDataBinanceCoinTracking(): Trade[] {
   return loadDataFromCoinTracking('Binance');
 }
+export function loadDataPoloniexFromCointracking(): Trade[] {
+  return loadDataFromCoinTracking('Poloniex');
+}
 
 export function loadDataFromCoinTracking(exchange: string): Trade[] {
+  const fileName = 'data/Cointracking_all.csv';
   let trades: Trade[] = []
   let values: string[] = []
   let isbuy: boolean = false;
@@ -170,6 +191,7 @@ export function loadDataFromCoinTracking(exchange: string): Trade[] {
   let sellAmt: number = 0;
   let buyAmt: number = 0;
   let exchangeField: string;
+  let ordernum: number;
   enum Cols {
     Type,
     BuyAmt,
@@ -196,16 +218,16 @@ export function loadDataFromCoinTracking(exchange: string): Trade[] {
   // "Comment": 9
   // "Date": 10
   // "Tx-ID": 11
-  let data = fs.readFileSync('data/CoinTracking_all.csv', 'utf-8').replace(/\"/g, '');
+  let data = fs.readFileSync(fileName, 'utf-8').replace(/\"/g, '');
   var errata = fs.createWriteStream('output/polo_input_errata.csv');
   console.log("here")
   let dataLines: string[] = data.split(/\r?\n/)
   dataLines.shift();
-  dataLines.forEach((line) => {
+  dataLines.forEach((line, index: number) => {
     values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
     //if(values[Cols.Exchange]!=="Poloniex")
     //console.log(values[Cols.Exchange])
-    if(values[Cols.Exchange]===exchange){
+    if(values[Cols.Exchange]===exchange && values[Cols.Type]==="Trade"){
      // console.log(values[Cols.Exchange])
     
       //if (stringLine.length === 11) {
@@ -218,6 +240,8 @@ export function loadDataFromCoinTracking(exchange: string): Trade[] {
       // if (syms.length === 2) {
       sym1 = values[2].replace(/[,\"]/g, '')
       sym2 = values[4].replace(/[,\"]/g, '')
+      let fee = Number(values[Cols.Fee])
+      let feeSym = values[Cols.FeeSym]
       // } else {
       //console.log('syms wrong');
       // }
@@ -236,6 +260,10 @@ export function loadDataFromCoinTracking(exchange: string): Trade[] {
       }
 
       let values2 = values[11].replace(/[,\"]/g, '').split(/(?<!E)-/g);
+
+      if(values[7]==='Coinbase Pro') {
+        ordernum = Number(values[11].split('_')[0]);
+      } 
       
       // con/sole.log(`buyAmt: ${buyAmt}, sellAmt: ${sellAmt}`)
       trades.push({
@@ -245,13 +273,17 @@ export function loadDataFromCoinTracking(exchange: string): Trade[] {
         sellSymbol: sym2,
         buyAmount: buyAmt,
         sellAmount: sellAmt,
-        fee: -99,
+        fee,
         time: Date.parse(`${values[Cols.Date].replace(' ','T')}Z`),
         feeUsd: -97,
         isBuy: isbuy,
         type: values[0].replace(/[,\"]/g, '') === 'Trade' ? 'Exchange' : values[0],
         costBasisUSD: -99,
-        exchange: values[Cols.Exchange]
+        exchange: values[Cols.Exchange],
+        lineNum: index,
+        fileName: fileName,
+        ordernum,
+        feeSym
       });
       // console.log(`${line}`)
      //  console.log(`${JSON.stringify(trades.at(-1))}`)
@@ -354,6 +386,7 @@ export function loadCointrackingSales(fileName: string): Sale[] {
   let syms: string[] = []
   let sellAmt: number = 0;
   let buyAmt: number = 0;
+  let ordernum = -99;
 
   // Date,Market,Category,Type,Price,Amount,Total,Fee,Order Number,Base Total Less Fee,Quote Total Less Fee
   let data = fs.readFileSync(fileName, 'utf-8')
@@ -365,7 +398,6 @@ export function loadCointrackingSales(fileName: string): Sale[] {
   dataLines.forEach((line: any) => {
     values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
     if (values.length > 1) {
-
       sales.push({
         sym: values[1],
         time: new Date(values[3]).getTime(),
@@ -499,7 +531,10 @@ function createTrade(
   fee: number, 
   price: number,
   type: string,
-  exchange: string)
+  exchange: string,
+  lineNum: number = -99,
+  fileName: string = "",
+  ordernum: number = -99)
   : Trade {
     return {
       buyName: buySymbol,
@@ -514,7 +549,10 @@ function createTrade(
       isBuy:isbuy,
       type: type,
       costBasisUSD: -99,
-      exchange
+      exchange,
+      lineNum: lineNum,
+      fileName: fileName,
+      ordernum: ordernum
     };
 
 
@@ -525,6 +563,7 @@ export function loadDataFromCoinbase(fileName: string): Trade[] {
   const defaultOrderType = "Exchange"
   let trades: Trade[] = []
   let syms: string[] = []
+  let ordernum: number;
   let data = fs.readFileSync(fileName, 'utf-8')
   let values: string[], fee:number , price: number, myDate: number, isBuy: boolean, buyAmt: number, sellAmt: number;
 /*
@@ -539,7 +578,7 @@ default,599054,BCH-BTC,SELL,2018-11-11T16:09:52.960Z,0.01000000,BCH,0.08268,0,0.
 */
   let dataLines: string[] = data.split(/\r?\n/);
   dataLines.shift();
-  dataLines.forEach((line: any) => {
+  dataLines.forEach((line: any, index: number) => {
     values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
     
     if(values.length>4){
@@ -554,8 +593,9 @@ default,599054,BCH-BTC,SELL,2018-11-11T16:09:52.960Z,0.01000000,BCH,0.08268,0,0.
       syms = isBuy ? values[2].split("-") : values[2].split("-").reverse()
       fee = Math.abs(Number(values[8]));
       price = Number(values[7]);
+      ordernum = Number(values[1])
       trades.push(createTrade(isBuy, buyAmt, sellAmt, syms[0], syms[1],
-        myDate, fee, price, defaultOrderType, exchangeName))
+        myDate, fee, price, defaultOrderType, exchangeName, index, fileName, ordernum))
     }
   })
   
