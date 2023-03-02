@@ -4,10 +4,10 @@ import { writeSalesSummary, writeSales, Log, writeUnfoundCostBasis } from './log
 import { getPrice, loadMktData, getCoinBaseProData, getHourlyCoinBaseBtc, getHourlyCoinBaseEth } from './mktDataInput'
 import { loadDataPoloniex, loadDataFromCoinTracking, loadDataBinanceCoinTracking, 
   loadDataFromBitmex, loadCointrackingSales, loadAllBitfinexTrades,loadDataFromCoinbaseAll, 
-  loadDataFromBinance, loadDataFromGemini, writeDataPoloniex, loadFromBitstamp, loadDataPoloniexFromCointracking} from './tradeInput'
+  loadDataFromBinance, loadDataFromGemini, writeDataPoloniex, loadFromBitstamp, loadDataPoloniexFromCointracking} from './loadTrades'
 import { compareByTime, compareByAmt } from './validation/compareTwo'
 import { compareToFindMissing, compareTwo } from './compareFiles'
-import { TaxCalculator } from './TaxCalculator'
+import { TaxCalculator } from './TaxCalcEngine'
 
 
  
@@ -23,22 +23,27 @@ function main2() {
   
   const loadFunctions = [loadFromBitstamp, loadDataFromGemini, loadDataFromBinance,loadDataFromBitmex, loadDataPoloniex, loadAllBitfinexTrades, loadDataFromCoinbaseAll]
   //const loadFunctions = [loadDataFromBitmex, loadDataPoloniex]
-  //const loadFunctions = [loadDataFromCoinbaseAll]
+  //const loadFunctions = [loadDataPoloniex]
 
   let allData: Trade[] = []
+  
   let tempTrades;
   loadFunctions.forEach( func => {
     tempTrades =  func();
     tempTrades?.forEach( trade => allData.push(trade))
   })
+  
+  
 
   //const coinbaseTrades =  loadDataFromCoinbaseAll()//;;loadDataFromCoinTracking("Coinbase Pro")
-  //throw(coinbaseTrades.length)
+ // allData = loadDataFromCoinTracking("Poloniex")
+  
   //coinbaseTrades.forEach( trade => {allData.push(trade)})
   console.log("done get all data from files")
   
  // const bitmexData = loadDataFromBitmex();
  const poloData = loadDataPoloniex();
+
  // const bitfinexData = loadAllBitfinexTrades();
  // const coinbaseData = loadDataFromCoinbaseAll();
   //const allData =  [...bitmexData, ...poloData, ...bitfinexData, ...coinbaseData ].sort((a,b) => a.time - b.time)
@@ -46,7 +51,7 @@ function main2() {
   //const allData = [...poloData]
   allData.sort((a, b)   => a.time - b.time)
  
-  let mktPrcs: any = loadMktData(['BTC', 'ETH', 'USDT', 'LTC', 'ZEC', 'BNB', 'EUR', 'BCH', 'XRP', 'BSV']);
+  let mktPrcs: any = loadMktData(['BTC', 'ETH', 'USDT', 'LTC', 'ZEC', 'BNB', 'EUR', 'BCH', 'XRP', 'BSV', 'XMR', 'ETC']);
  // fs.writeFileSync('output/debug443.log', '')
   //console.log(getPrice('BTC', 1519067408000, mktPrcs, debugInfo));
  // console.log(JSON.stringify(debugInfo))
@@ -119,15 +124,16 @@ function runCompare() {
 
 
 function getCoinBaseData(){
- // getCoinBaseProData('BTC-USD')
+ // getCoinBaseProData('ETC-USD')
 //  console.log(`${JSON.stringify(getHourlyCoinBaseBtc())}`)
 }
 // getHourlyCoinBaseEth()
 // getCoinBaseData()
 //getHourlyCoinBaseEth()
-console.log("before main2") 
-//main2();
-compareTwo()
+///console.log("before main2") 
+//getCoinBaseData();
+main2();
+//compareTwo()
 //getCoinBaseData()
 // console.log("done222")
 // runCompare();

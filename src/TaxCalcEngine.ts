@@ -48,7 +48,7 @@ export class TaxCalculator{
   }
   
   
-    getCostBasisWithRemove(amt: number, coins: Coin[], price: number, coinName: string = ""): number {
+    getCostBasisWithRemove(amt: number, coins: Coin[], price: number, coinName: string = "", amtNotFound = {amt: 0}): number {
       if(!coins || coins.length==0){
         console.log(`no coins for ${coinName} ${amt} ${price}`)
         this.totalUSDUnfoundCoin += amt * price;
@@ -57,14 +57,14 @@ export class TaxCalculator{
       }
       
       if(this.isFifo){
-        return this.getCostBasisWithRemoveFifo(amt, coins, price, coinName)
+        return this.getCostBasisWithRemoveFifo(amt, coins, price, coinName, amtNotFound)
       } else {
-        return this.getCostBasisWithRemoveLifo(amt, coins, price, coinName)
+        return this.getCostBasisWithRemoveLifo(amt, coins, price, coinName, amtNotFound)
       }
   
     }
   
-    getCostBasisWithRemoveLifo(amt: number, coins: Coin[], price: number, coinName: string = ""): number {
+    getCostBasisWithRemoveLifo(amt: number, coins: Coin[], price: number, coinName: string = "", amtNotFound = {amt: 0}): number {
      
       let costBasis: number = 0;
       let loc = coins.length - 1;
@@ -108,6 +108,7 @@ export class TaxCalculator{
       }
   
       if (amt > 1e-10) {
+        amtNotFound.amt = amt;
         console.log(`didn't find cost basis for ${amt} coin: ${coinName}, price ${price}}`)
         this.totalUSDUnfoundCoin += amt * price;
        // throw("zzz")
@@ -117,7 +118,7 @@ export class TaxCalculator{
       return costBasis;
     }
   
-    getCostBasisWithRemoveFifo(amt: number, coins: Coin[], price: number, coinName: string = ""): number {
+    getCostBasisWithRemoveFifo(amt: number, coins: Coin[], price: number, coinName: string = "",  amtNotFound = {amt: 0}): number {
       if(!coins || coins.length==0){
         console.log(`didn't find cost basis for ${amt} coin: ${coinName}}`)
         this.costBasisErrorCoins.set(coinName, this.costBasisErrorCoins.get(coinName) || 0 + amt)
@@ -162,6 +163,7 @@ export class TaxCalculator{
      // throw(`didn't find cost basis for ${amt} coin: ${coins.length}`)
   
       if (amt > 1e-10) {
+        amtNotFound.amt = amt;
         this.totalUSDUnfoundCoin += price * amt;
         console.log(`didn't find cost basis for ${amt} coin: ${coinName}, price : ${price}}`)
        // throw("zzz")
@@ -217,11 +219,11 @@ export class TaxCalculator{
     })
   }
   
-    addSale(sym: string, time: number, amount: number, costBasisUSD: number, price: number,
+    addSale(sym: string, time: number, amount: number, costBasisUSD: number, proceedsUsd: number,
       exchange: string, buyMktPrc: number, buyAmt: number, lineNum: number | undefined, fileName: string | undefined, sales: Sale[]) {
       const costBasisUnfound = false;
-      this.realizedPnl += price - costBasisUSD;
-      sales.push({ sym, time, amount, costBasisUSD, costBasisUnfound, price, buyMktPrc, buyAmt, lineNum: lineNum || -99, fileName: fileName || "", exchange })
+      this.realizedPnl += proceedsUsd - costBasisUSD;
+      sales.push({ sym, time, amount, costBasisUSD, costBasisUnfound, proceedsUsd, buyMktPrc, buyAmt, lineNum: lineNum || -99, fileName: fileName || "", exchange })
     }
 
     calculatePortfolioCostBasis(){
@@ -294,13 +296,13 @@ export class TaxCalculator{
             console.log(JSON.stringify(trade))
   
             fs.appendFileSync("output/gemini.txt", `${JSON.stringify(trade)}\r\n ${JSON.stringify(sales.at(-1))} \r\n, costbasis: ${costBasis}`)
-            fs.appendFileSync("output/gemini3.txt", `price: ${JSON.stringify(sales.at(-1)?.price)}  costbasis: ${costBasis}\r\n`)
+            fs.appendFileSync("output/gemini3.txt", `price: ${JSON.stringify(sales.at(-1)?.proceedsUsd)}  costbasis: ${costBasis}\r\n`)
             fs.appendFileSync("output/gemini5.txt", `time: ${trade.time} ${trade.buyAmount} sellAmt: ${trade.sellAmount} \ 
             costbasis: ${costBasis} costBasisDebug: ${JSON.stringify(this.coinDebugInfo)} \r\n `)
           }
       } else {
          
-        const useList = ['BTC', 'ETH', 'USDT', 'LTC', 'ZEC', 'BNB', 'EUR', 'BSV', 'USD'];
+        const useList = ['BTC', 'ETH', 'USDT', 'LTC', 'ZEC', 'BNB', 'EUR', 'BSV', 'USD', "XMR", "ETC"];
         if (useList.includes(trade.buySymbol) && useList.includes(trade.sellSymbol)) {
           let buyPriceUsd: number = getPrice(trade.buySymbol, trade.time, this.mktPrcs, this.debugInfo);
           //console.log(`buyPriceUsd: ${buyPriceUsd} sellPriceUsd: ${sellPriceUsd}`)
@@ -313,14 +315,29 @@ export class TaxCalculator{
           }
           */
           const sellPrc = getPrice(trade.sellSymbol, trade.time, this.mktPrcs, this.debugInfo);
-    
-          this.addCoinToWallet(trade.buyAmount, trade.buyAmount * buyPriceUsd, trade.buySymbol, trade.time, trade.exchange, this.coinWallets)
-          this.addSale(trade.sellSymbol, trade.time, trade.sellAmount, this.getCostBasisWithRemove(trade.sellAmount, this.coinWallets.get(trade.sellSymbol)!, sellPrc, trade.sellSymbol),
-            trade.buyAmount * buyPriceUsd, trade.exchange, buyPriceUsd, trade.buyAmount, trade.lineNum, trade.fileName, sales);
-        
-        }
+          let basisAdjFeeUsd = 0;
+          if(trade.feeSym && trade.feeSym?.length>0 && trade.fee>0){
+            const feePriceUsd = getPrice(trade.feeSym, trade.time, this.mktPrcs, this.debugInfo);
+            basisAdjFeeUsd = feePriceUsd * trade.fee;
+          }
+          let amtNotFound = {amt: 0}
+          this.addCoinToWallet(trade.buyAmount, trade.buyAmount * buyPriceUsd , trade.buySymbol, trade.time, trade.exchange, this.coinWallets)
+         
+          let costBasis = this.getCostBasisWithRemove(trade.sellAmount, this.coinWallets.get(trade.sellSymbol)!, sellPrc, trade.sellSymbol, amtNotFound);
+          if(amtNotFound.amt>0){
+            const ratio = amtNotFound.amt/trade.sellAmount; 
+            this.addSale(trade.sellSymbol, trade.time, trade.sellAmount*ratio, 0,
+              trade.buyAmount * buyPriceUsd * ratio , trade.exchange, buyPriceUsd, trade.buyAmount*ratio, trade.lineNum, trade.fileName, sales);       
+          } else if(trade.sellAmount - amtNotFound.amt > 0){
+            const ratio = (trade.sellAmount - amtNotFound.amt)/trade.sellAmount;
+            this.addSale(trade.sellSymbol, trade.time, trade.sellAmount* ratio, costBasis,
+            trade.buyAmount * buyPriceUsd * ratio , trade.exchange, buyPriceUsd, trade.buyAmount*ratio, trade.lineNum, trade.fileName, sales);
+          }
+          
+      
       }
-  
+      }
+      
     }
   
     useFee(trade: Trade, sales: Sale[]){
@@ -341,6 +358,8 @@ export class TaxCalculator{
      // if(trade.sellSymbol!=="USD"){
      //   this.getCostBasisWithRemove(trade.sellAmount, this.coinWallets.get(trade.sellSymbol)!, "Fee");
      // }
+
+
       this.addSale(trade.sellSymbol, trade.time, trade.sellAmount, costBasisUSD,
         PRICE, trade.exchange, price, -99,  -99,  "unknown", sales);
       }
@@ -403,9 +422,9 @@ export class TaxCalculator{
 
     performAnalysis(data: Trade[]): Sale[] {
       
-      const uppDateFilter = new Date('2019-01-01T00:00:01Z').getTime()
+      const uppDateFilter = new Date('2017-06-01T00:00:01Z').getTime()
       const lowerDateFilter = new Date('2017-01-01 00:00:01Z').getTime()
-      const filterSym = ["BTC", "USDT", "ETH", "USD", "LTC", "ZEC", "BNB", "EUR", "BCH", "XRP", "BSV"]
+      const filterSym = ["BTC", "USDT", "ETH", "USD", "LTC", "ZEC", "BNB", "EUR", "BCH", "XRP", "BSV", "XMR", "ETC"]
       const saleRecords: Sale[] = []
       
       this.coinWallets = this.getCoinWallets(filterSym)
@@ -431,21 +450,25 @@ export class TaxCalculator{
         
       this.doAllTrades(reducedData,saleRecords);
       let balance = 0, totalUSDBalance = 0 , realizedUSD: number, price, totalRealizedUSD = 0;
-      const syms =  ['BNB', 'BTC', 'USDT', 'ETH', 'BSV', 'BCH', 'USD', 'LTC', 'ZEC', 'XRP', 'EUR']
+      const syms =  ['BNB', 'BTC', 'USDT', 'ETH', 'BSV', 'BCH', 'USD', 'LTC', 'ZEC', 'XRP', 'EUR', 'XMR', 'ETC']
       
       if(saleRecords && saleRecords.length){
         syms.forEach(sym => {
           balance = 0;
           realizedUSD = 0;
           price = getPrice(sym, saleRecords.at(-1)!.time , this.mktPrcs, this.debugInfo);
+          let map = new Map<string, number>();
           this.coinWallets.get(sym)?.forEach(coin => {
             balance += coin.amount;
             realizedUSD += coin.costBasis;
+            map.set(coin.exchange, (map.get(coin.exchange) || 0) + coin.amount);
           });
+
           console.log(`balance of ${sym}: ${balance}, price: ${price} USD value: ${price*balance} CostBasis: ${realizedUSD}`)
+          map.forEach((value, key) => console.log(`balance of ${sym} in ${key}: ${value}`))
           totalUSDBalance += price*balance;
           totalRealizedUSD += realizedUSD;
-          writeUnfoundCostBasis(this.costBasisErrorCoins, saleRecords.at(-1)!.time, this.mktPrcs);
+         //- writeUnfoundCostBasis(this.costBasisErrorCoins, saleRecords.at(-1)!.time, this.mktPrcs);
         }) 
       }
 

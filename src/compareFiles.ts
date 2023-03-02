@@ -1,4 +1,4 @@
-import { loadDataFromCoinTracking, loadDataPoloniex, loadDataFromCoinbaseAll } from './tradeInput'
+import { loadDataFromCoinTracking, loadDataPoloniex, loadDataFromCoinbaseAll } from './loadTrades'
 import { Trade } from './types'
 import alasql from 'alasql';
 

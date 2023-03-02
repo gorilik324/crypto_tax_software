@@ -23,6 +23,79 @@ export function getCoinPriceForEth(): MarketPrice[] {
   return marketPrices
 }
 
+function get_ETC_PoloData(): MarketPrice[] {
+  let data = fs.readFileSync(`data/prices/Poloniex_ETCUSDT_d.csv`, 'utf-8')
+  let dataLines: string[] = data.split(/\r?\n/);
+  let marketPrices: MarketPrice[] = []
+  let values;
+  dataLines.shift();
+  dataLines.shift();
+  for(let i = 0; i< dataLines.length; ++i ){
+      values = dataLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      marketPrices.push({
+        timestamp: Number(values[0]),
+        price: Number(values[6])
+      })
+  }
+  return marketPrices;
+}
+
+function get_hourly_cryptodownload(symbol: string): MarketPrice[] {
+  
+  let data = fs.readFileSync(`data/prices/Poloniex_${symbol}USDT_1h.csv`, 'utf-8')
+  let dataLines: string[] = data.split(/\r?\n/);
+  let marketPrices: MarketPrice[] = []
+  let values;
+  dataLines.shift();
+  dataLines.shift();
+  for(let i = 0; i< dataLines.length; ++i ){
+      values = dataLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      marketPrices.push({
+        timestamp: Number(values[0]),
+        price: Number(values[6])
+      })
+  }
+  return marketPrices;
+}
+
+function get_XMR_PoloData(): MarketPrice[] {
+  
+  let data = fs.readFileSync(`data/prices/Poloniex_XMRUSDT_1h.csv`, 'utf-8')
+  let dataLines: string[] = data.split(/\r?\n/);
+  let marketPrices: MarketPrice[] = []
+  let values;
+  dataLines.shift();
+  dataLines.shift();
+  for(let i = 0; i< dataLines.length; ++i ){
+      values = dataLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      marketPrices.push({
+        timestamp: Number(values[0]),
+        price: Number(values[6])
+      })
+  }
+  return marketPrices;
+}
+
+function get_XMR_Daily_PoloData(): MarketPrice[] {
+  
+  let data = fs.readFileSync(`data/prices/Poloniex_XMRUSDT_d.csv`, 'utf-8')
+  let dataLines: string[] = data.split(/\r?\n/);
+  let marketPrices: MarketPrice[] = []
+  let values;
+  dataLines.shift();
+  dataLines.shift();
+  for(let i = 0; i< dataLines.length; ++i ){
+      values = dataLines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      marketPrices.push({
+        timestamp: Number(values[0]),
+        price: Number(values[6])
+      })
+  }
+  return marketPrices;
+}
+
+
+
 export function getCoinPriceForUSDT(): MarketPrice[] {
   let data = fs.readFileSync(`data/prices/USDT-USD-all.csv`, 'utf-8')
   let dataLines: string[] = data.split(/\r?\n/);
@@ -96,13 +169,19 @@ export function getCoinPrice(coin: string): MarketPrice[] {
     return sortMktPrice(getHourlyCoinBaseEth());
   } else if(coin==="USDT"){
     return sortMktPrice(getCoinPriceForUSDT());
-  } else if(coin==="ZEC"){
-    return sortMktPrice(getZEC());
+ // } else if(coin==="ZEC"){
+ //   return sortMktPrice(getZEC());
   } else if(coin=="BTC"){
     return sortMktPrice(get15minCoinBaseBtc());
   } else if(coin=="BNB"){
     return sortMktPrice(getBNBDaily());
-  } 
+  } else if(coin=="ETC"){
+    return sortMktPrice(get_ETC_PoloData());
+  } else if(coin==="XMR"){
+    return sortMktPrice(get_XMR_PoloData());
+  } else if(coin==="ZEC"){
+    return sortMktPrice(get_hourly_cryptodownload("ZEC"));
+  }
   let data = fs.readFileSync(`data/prices/${coin}-USD.csv`, 'utf-8')
   let dataLines: string[] = data.split(/\r?\n/);
   let marketPrices: MarketPrice[] = []
@@ -124,6 +203,7 @@ export function getPrice(sym: string, timeStamp: number, allMarketPrices: AllMar
   if(sym==="USD"){
       return 1;
   }
+ 
   if(data === undefined){
     console.log(`data is undefined for ${sym} ${timeStamp}`)
     throw('undefined data in getPrice')
@@ -144,6 +224,7 @@ export function getPrice(sym: string, timeStamp: number, allMarketPrices: AllMar
 
     //fs.appendFileSync("output/debug443.log", `${data.marketPrcs[data.loc].timestamp} ${data?.marketPrcs[data.loc].timestamp}}\n`);
   }
+
   
   debugInfo.time =  data.marketPrcs[data.loc].timestamp;
   if(data.loc>0){
@@ -164,13 +245,13 @@ export function loadMktData(syms: string[]): AllMarketPrices {
 
 
 export async function getCoinBaseProData(sym:string){
-  let startTime = new Date("2016-10-01").getTime()/1000;
+  let startTime = new Date("2016-17-01").getTime()/1000;
   const endTime = new Date("2019-03-01").getTime()/1000;
   const gradularity = 900;
   let lastTime = startTime + 300*gradularity;
   let data = [];
   let i = 0;
-  while(lastTime < endTime){
+  while(lastTime < endTime && i<2){
     let config = {
       method: 'get',
       url: `https://api.exchange.coinbase.com/products/${sym}/candles?granularity=${gradularity}&start=${startTime}&end=${lastTime}`,

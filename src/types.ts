@@ -25,7 +25,7 @@ export interface Sale {
   amount: number;
   costBasisUSD: number;
   costBasisUnfound: boolean;
-  price: number;
+  proceedsUsd: number;
   exchange: string;
   date?: string;
   buyMktPrc?: number;

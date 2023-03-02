@@ -74,12 +74,12 @@ function writeSales(sells, year = 0) {
         let costBasisError = 0;
         sells.forEach((sell) => {
             if (sell.costBasisUSD > 0 || sell.exchange === 'bitmex') {
-                totalPnl += sell.price - sell.costBasisUSD;
+                totalPnl += sell.proceedsUsd - sell.costBasisUSD;
             }
             else {
                 // console.log(`no cost basis ${sell.price - sell.costBasisUSD}`);
-                totalPnl += sell.price;
-                costBasisError += sell.price;
+                totalPnl += sell.proceedsUsd;
+                costBasisError += sell.proceedsUsd;
             }
         });
         console.log(`cost basis error: ${costBasisError}`);
@@ -126,7 +126,7 @@ function writeSalesSummary(sells) {
             let yearOffset = 0;
             let tempPnl;
             let pnls = Array(20).fill(0);
-            const firstYear = new Date(sells[0].time).getFullYear();
+            const firstYear = new Date(sells[0].time).getUTCFullYear();
             let amountUSDSold = 0;
             let maxAmountSold = 0;
             let tradeAtMaxAmtSold = {};
@@ -134,22 +134,22 @@ function writeSalesSummary(sells) {
                 if (sell.sym == "USD") {
                     return;
                 }
-                tempPnl = sell.price - sell.costBasisUSD;
-                amountUSDSold += sell.price;
+                tempPnl = sell.proceedsUsd - sell.costBasisUSD;
+                amountUSDSold += sell.proceedsUsd;
                 pnl += tempPnl;
                 if (tempPnl > maxpnl && sell.exchange !== "bitmex") {
                     maxpnl = tempPnl;
-                    maxPrice = sell.price;
+                    maxPrice = sell.proceedsUsd;
                     maxQaunt = sell.amount;
                     maxCostBasis = sell.costBasisUSD;
                     maxSale = sell;
                 }
-                if (maxAmountSold > sell.price) {
+                if (maxAmountSold > sell.proceedsUsd) {
                     tradeAtMaxAmtSold = sell;
-                    maxAmountSold = sell.price;
+                    maxAmountSold = sell.proceedsUsd;
                 }
                 // maxpnl = Math.max(maxpnl, sell.price - sell.costBasisUSD);
-                yearOffset = new Date(sell.time).getFullYear() - firstYear;
+                yearOffset = new Date(sell.time).getUTCFullYear() - firstYear;
                 pnls[yearOffset] += tempPnl;
                 if (exchs.has(sell.exchange)) {
                     exchs.set(sell.exchange, exchs.get(sell.exchange) + tempPnl);

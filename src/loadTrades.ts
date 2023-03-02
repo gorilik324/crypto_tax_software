@@ -60,7 +60,7 @@ export function loadDataPoloniex(): Trade[] {
       // console.log(`buyAmt: ${buyAmt}, sellAmt: ${sellAmt}`)
       // console.log(`fee: ${fee}, ${stringLine}`)
       if(isbuy) {
-        buyAmt =  sellAmt / price * (1.0 - feePrct*1.0/100);
+        buyAmt *=   (1.0 - feePrct*1.0/100);
         feeAmt =  sellAmt / price * (feePrct*1.0/100)
        // console.log(`${line}`)
         //throw(`zzzz ${buyAmt} ${price} ${sellAmt} ${fee}`)
@@ -73,10 +73,10 @@ export function loadDataPoloniex(): Trade[] {
         sellName: sym2,
         buySymbol: sym1,
         sellSymbol: sym2,
-        buyAmount: isbuy ? (buyAmt)  : sellAmt,
+        buyAmount: isbuy ? buyAmt  : sellAmt,
         sellAmount: isbuy ? sellAmt : buyAmt,
         fee: feeAmt,
-        time: Date.parse(stringLine[0] + ' GMT+0000') - 1000*3600*1.5,
+        time: Date.parse(stringLine[0] + ' GMT+0000'),
         feeUsd: -99,
         isBuy: isbuy,
         type: stringLine[2],
@@ -182,7 +182,7 @@ export function loadDataPoloniexFromCointracking(): Trade[] {
 }
 
 export function loadDataFromCoinTracking(exchange: string): Trade[] {
-  const fileName = 'data/Cointracking_all.csv';
+  const fileName = 'data/cointrackingTest.csv'; //'data/CoinTracking_all.csv'// 
   let trades: Trade[] = []
   let values: string[] = []
   let isbuy: boolean = false;
@@ -404,7 +404,7 @@ export function loadCointrackingSales(fileName: string): Sale[] {
         amount: Number(values[0]),
         costBasisUSD: Number(values[8].replace(/[,\"]/g, '')),
         costBasisUnfound: false,
-        price: Number(values[9].replace(/[,\"]/g, '')),
+        proceedsUsd: Number(values[9].replace(/[,\"]/g, '')),
         exchange: values[5],
       });
     }
